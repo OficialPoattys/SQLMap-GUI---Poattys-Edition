@@ -1,0 +1,249 @@
+SQLMAP - PERFIS PRE-CONFIGURADOS
+=================================
+
+Arquivo de referencia para testar primeiro com o sqlmap.py original e depois
+reproduzir as mesmas combinacoes na GUI.
+
+IMPORTANTE
+----------
+1. Use estes perfis somente em alvos para os quais voce possui autorizacao.
+2. Substitua os valores entre <...> antes de executar.
+3. Os comandos abaixo sao modelos. O sqlmap pode solicitar confirmacoes durante
+   a execucao, exceto nos perfis que usam --batch.
+4. Exit code 0 significa que a execucao terminou normalmente; nao significa que
+   uma vulnerabilidade foi encontrada.
+5. Perfis com --all, --risk=3, --crawl ou --tor podem gerar mais trafego ou
+   depender de servicos externos. Valide o escopo antes de usa-los.
+6. Em comandos Windows, mantenha os valores com espacos entre aspas.
+
+PLACEHOLDERS
+------------
+<TARGET_URL>   URL autorizada para teste, por exemplo https://example.test/item?id=1
+<REQUEST_FILE> Arquivo de requisicao HTTP capturada
+<TARGET_LIST>  Arquivo com uma lista de URLs autorizadas
+<DATABASE>     Nome do banco identificado
+<TABLE>        Nome da tabela identificada
+<SPEC_FILE>    Arquivo OpenAPI/Swagger
+<PROXY>        Proxy no formato http://127.0.0.1:8080
+
+FORMATO
+-------
+Cada perfil possui um nome, objetivo e comando de referencia. Execute o comando
+na raiz do repositorio onde sqlmap.py esta localizado.
+
+
+01. DETECTION ONLY - DETECCAO BASICA
+-------------------------------------
+Objetivo: verificar pontos de injecao com a configuracao mais conservadora.
+
+python sqlmap.py --url "<TARGET_URL>" --level=1 --risk=1 --technique=BEUSTQ
+
+
+02. BANNER ONLY - SOMENTE BANNER
+--------------------------------
+Objetivo: solicitar somente a identificacao do banner do DBMS depois da deteccao.
+
+python sqlmap.py --url "<TARGET_URL>" --banner --level=1 --risk=1
+
+
+03. CURRENT CONTEXT - CONTEXTO ATUAL
+-------------------------------------
+Objetivo: obter banner, usuario atual e banco de dados atual.
+
+python sqlmap.py --url "<TARGET_URL>" --banner --current-user --current-db --level=1 --risk=1
+
+
+04. DATABASES ONLY - SOMENTE DBS
+--------------------------------
+Objetivo: enumerar somente os nomes dos bancos de dados.
+
+python sqlmap.py --url "<TARGET_URL>" --dbs --level=1 --risk=1
+
+
+05. TABLES ONLY - SOMENTE TABELAS
+---------------------------------
+Objetivo: enumerar tabelas de um banco especifico.
+Requisito: preencher <DATABASE> com um banco autorizado.
+
+python sqlmap.py --url "<TARGET_URL>" --tables -D "<DATABASE>" --level=1 --risk=1
+
+
+06. COLUMNS ONLY - SOMENTE COLUNAS
+----------------------------------
+Objetivo: enumerar colunas de uma tabela especifica.
+Requisito: preencher <DATABASE> e <TABLE>.
+
+python sqlmap.py --url "<TARGET_URL>" --columns -D "<DATABASE>" -T "<TABLE>" --level=1 --risk=1
+
+
+07. SCHEMA INVENTORY - INVENTARIO DE SCHEMA
+-------------------------------------------
+Objetivo: enumerar bancos, tabelas e colunas sem solicitar o dump de registros.
+
+python sqlmap.py --url "<TARGET_URL>" --dbs --tables --columns --level=2 --risk=1 --technique=BEU
+
+
+08. STANDARD AUDIT - AUDITORIA PADRAO
+-------------------------------------
+Objetivo: auditoria geral moderada com fingerprinting basico.
+
+python sqlmap.py --url "<TARGET_URL>" --level=2 --risk=1 --banner --current-user --current-db
+
+
+09. FAST AUDIT - AUDITORIA RAPIDA
+---------------------------------
+Objetivo: reduzir o tempo de execucao usando concorrencia e menos retries.
+
+python sqlmap.py --url "<TARGET_URL>" --level=2 --risk=1 --threads=4 --timeout=15 --retries=1
+
+
+10. LOW NOISE - BAIXO RUIDO
+---------------------------
+Objetivo: reduzir ritmo e volume de requisicoes durante a avaliacao inicial.
+
+python sqlmap.py --url "<TARGET_URL>" --level=1 --risk=1 --technique=BEU --smart --threads=1 --delay=1 --random-agent
+
+
+11. STEALTH WAF-AWARE - BAIXA TAXA
+-----------------------------------
+Objetivo: avaliacao mais lenta, com user-agent aleatorio e foco em heuristica.
+Observacao: nao inclui tamper automaticamente; selecione um script apenas se
+houver justificativa e compatibilidade com o alvo autorizado.
+
+python sqlmap.py --url "<TARGET_URL>" --level=1 --risk=1 --technique=BEU --smart --random-agent --threads=1 --delay=2 --timeout=45 --retries=1
+
+
+12. STEALTH VIA TOR
+-------------------
+Objetivo: encaminhar a execucao por Tor com baixa concorrencia.
+Requisito: Tor deve estar configurado e em execucao localmente.
+
+python sqlmap.py --url "<TARGET_URL>" --level=1 --risk=1 --technique=BEU --smart --random-agent --tor --threads=1 --delay=1 --timeout=60 --retries=2
+
+
+13. TAMPER SPACE2COMMENT - TAMPER INDIVIDUAL
+--------------------------------------------
+Objetivo: testar uma unica transformacao de espacos em comentarios.
+Observacao: tamper nao e prova de WAF e pode alterar a compatibilidade do payload.
+
+python sqlmap.py --url "<TARGET_URL>" --level=2 --risk=1 --tamper=space2comment
+
+
+14. TAMPER BETWEEN - TAMPER INDIVIDUAL
+--------------------------------------
+Objetivo: testar a transformacao de comparacoes para BETWEEN.
+Observacao: use um tamper por vez durante a comparacao de resultados.
+
+python sqlmap.py --url "<TARGET_URL>" --level=2 --risk=1 --tamper=between
+
+
+15. CRAWLER LINKS AND FORMS - CRAWL CONSERVADOR
+-----------------------------------------------
+Objetivo: descobrir links e formularios em profundidade curta.
+Observacao: caminhos comuns de alteracao de estado sao excluidos por regex.
+
+python sqlmap.py --url "<TARGET_URL>" --crawl=2 --forms --crawl-exclude="logout|signout|delete|remove" --level=1 --risk=1 --threads=1
+
+
+16. CRAWLER BROAD DISCOVERY - DESCOBERTA AMPLA
+-----------------------------------------------
+Objetivo: crawl mais profundo, com formularios e concorrencia moderada.
+
+python sqlmap.py --url "<TARGET_URL>" --crawl=4 --forms --level=2 --risk=1 --threads=2 --parse-errors
+
+
+17. CRAWLER AGGRESSIVE AUDIT - CRAWL BARULHENTO
+-----------------------------------------------
+Objetivo: crawl profundo combinado com enumeracao completa.
+Aviso: pode gerar volume elevado de requisicoes.
+
+python sqlmap.py --url "<TARGET_URL>" --crawl=5 --forms --level=3 --risk=2 --threads=4 --all --batch
+
+
+18. DEEP AUDIT - AUDITORIA PROFUNDA
+-----------------------------------
+Objetivo: cobertura maxima de testes e enumeracao completa.
+Aviso: perfil ruidoso; use somente em janela e escopo aprovados.
+
+python sqlmap.py --url "<TARGET_URL>" --level=5 --risk=3 --threads=4 --forms --all
+
+
+19. HTTP REQUEST REPLAY - REQUISICAO CAPTURADA
+----------------------------------------------
+Objetivo: testar uma requisicao HTTP preservando metodo, headers e parametros.
+Requisito: preencher <REQUEST_FILE> com uma captura autorizada.
+
+python sqlmap.py -r "<REQUEST_FILE>" --level=2 --risk=1
+
+
+20. REQUEST WITH HAR LOG - REQUISICAO E LOG HAR
+----------------------------------------------
+Objetivo: testar uma requisicao capturada e registrar o trafego em um arquivo HAR.
+O arquivo HAR e uma saida de auditoria; ele nao e usado como entrada neste comando.
+
+python sqlmap.py -r "<REQUEST_FILE>" --har="sqlmap-run.har" --level=2 --risk=1
+
+
+21. OPENAPI TARGET DISCOVERY - OPENAPI/SWAGGER
+----------------------------------------------
+Objetivo: derivar alvos a partir de um documento OpenAPI ou Swagger.
+Requisito: preencher <SPEC_FILE> e, se necessario, ajustar --openapi-base.
+
+python sqlmap.py --openapi="<SPEC_FILE>" --openapi-base="https://example.test" --level=1 --risk=1
+
+
+22. TARGET LIST - LISTA DE ALVOS
+-------------------------------
+Objetivo: processar varios alvos autorizados a partir de um arquivo de texto.
+Requisito: preencher <TARGET_LIST> e revisar o escopo antes da execucao.
+
+python sqlmap.py -m "<TARGET_LIST>" --level=1 --risk=1 --batch
+
+
+23. PROXY OBSERVATION - EXECUCAO ATRAVES DE PROXY
+-------------------------------------------------
+Objetivo: executar a avaliacao atraves de um proxy controlado para observacao.
+Requisito: preencher <PROXY> com um proxy autorizado.
+
+python sqlmap.py --url "<TARGET_URL>" --proxy="<PROXY>" --level=2 --risk=1
+
+
+24. FRESH SESSION - NOVA SESSAO
+-------------------------------
+Objetivo: ignorar resultados armazenados anteriormente e repetir a avaliacao.
+Aviso: isso pode gerar novamente todas as requisicoes do perfil.
+
+python sqlmap.py --url "<TARGET_URL>" --fresh-queries --level=2 --risk=1
+
+
+25. NON-INTERACTIVE STANDARD - PADRAO SEM PROMPTS
+-------------------------------------------------
+Objetivo: executar uma auditoria padrao usando as respostas default do sqlmap.
+Use quando a automacao for intencional e o escopo ja tiver sido revisado.
+
+python sqlmap.py --url "<TARGET_URL>" --level=2 --risk=1 --banner --current-user --current-db --batch
+
+
+GUI MAPPING
+----------
+Os perfis acima podem ser reproduzidos na GUI preenchendo o alvo e ajustando
+os mesmos campos na aba Options. Os perfis internos da GUI equivalentes incluem:
+
+- Detection only
+- Banner only
+- Databases only
+- Tables only
+- Columns only
+- Current context
+- Standard audit
+- Schema inventory
+- Database inventory
+- Stealth / WAF-aware
+- Stealth via Tor
+- Fast audit
+- Crawler - links and forms
+- Crawler - broad discovery
+- Crawler - aggressive audit
+- Deep audit - loud
+
+FIM

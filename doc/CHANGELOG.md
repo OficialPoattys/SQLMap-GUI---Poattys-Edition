@@ -34,6 +34,7 @@
 * Added the switch `--mine-params`. It finds hidden GET parameters.
 * Added the switch `--proof`. It proves the exploitation of each injection point that it finds.
 * Added the option `--report-json`. It writes the results of the run to a JSON file.
+* Added a Zenmap-inspired Tkinter GUI (`--gui`) with profiles, grouped options, asynchronous output, and structured results.
 * Added the switch `--procs`. It retrieves the stored procedures and their source code.
 * Added the option `--exclude`. It gives the databases that sqlmap must not enumerate.
 * Added JSONL as a dump format.
