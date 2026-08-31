@@ -229,14 +229,71 @@ class ProfileStore(object):
         "Detection only": {
             "level": 1, "risk": 1, "technique": "BEUSTQ",
         },
+        "Banner only": {
+            "level": 1, "risk": 1, "technique": "BEUSTQ",
+            "getBanner": True,
+        },
+        "Databases only": {
+            "level": 1, "risk": 1, "technique": "BEUSTQ",
+            "getDbs": True,
+        },
+        "Tables only": {
+            "level": 1, "risk": 1, "technique": "BEUSTQ",
+            "getTables": True,
+        },
+        "Columns only": {
+            "level": 1, "risk": 1, "technique": "BEUSTQ",
+            "getColumns": True,
+        },
+        "Current context": {
+            "level": 1, "risk": 1, "technique": "BEUSTQ",
+            "getBanner": True, "getCurrentUser": True, "getCurrentDb": True,
+        },
         "Standard audit": {
             "level": 2, "risk": 1, "technique": "BEUSTQ",
             "getBanner": True, "getCurrentUser": True, "getCurrentDb": True,
+        },
+        "Schema inventory": {
+            "level": 2, "risk": 1, "technique": "BEU",
+            "getDbs": True, "getTables": True, "getColumns": True,
         },
         "Database inventory": {
             "level": 2, "risk": 1, "technique": "BEU",
             "getBanner": True, "getCurrentUser": True, "getCurrentDb": True,
             "getDbs": True, "getTables": True,
+        },
+        "Stealth / WAF-aware": {
+            "level": 1, "risk": 1, "technique": "BEU",
+            "smart": True, "randomAgent": True, "threads": 1,
+            "delay": 2.0, "timeout": 45.0, "retries": 1,
+        },
+        "Stealth via Tor": {
+            "level": 1, "risk": 1, "technique": "BEU",
+            "smart": True, "randomAgent": True, "tor": True, "threads": 1,
+            "delay": 1.0, "timeout": 60.0, "retries": 2,
+        },
+        "Fast audit": {
+            "level": 2, "risk": 1, "technique": "BEUSTQ",
+            "threads": 4, "timeout": 15.0, "retries": 1,
+        },
+        "Crawler - links and forms": {
+            "level": 1, "risk": 1, "technique": "BEUSTQ",
+            "crawlDepth": 2, "forms": True, "threads": 1,
+            "crawlExclude": "logout|signout|delete|remove",
+        },
+        "Crawler - broad discovery": {
+            "level": 2, "risk": 1, "technique": "BEUSTQ",
+            "crawlDepth": 4, "forms": True, "threads": 2,
+            "parseErrors": True,
+        },
+        "Crawler - aggressive audit": {
+            "level": 3, "risk": 2, "technique": "BEUSTQ",
+            "crawlDepth": 5, "forms": True, "threads": 4,
+            "getAll": True, "batch": True,
+        },
+        "Deep audit - loud": {
+            "level": 5, "risk": 3, "technique": "BEUSTQ",
+            "threads": 4, "getAll": True, "forms": True,
         },
     }
 
@@ -308,8 +365,21 @@ class ProfileStore(object):
 def profile_description(name):
     descriptions = {
         "Detection only": "Confirms injection points without requesting database contents.",
+        "Banner only": "Detects injection and requests only the DBMS banner.",
+        "Databases only": "Detects injection and enumerates database names only.",
+        "Tables only": "Enumerates table names only. Select a database when required.",
+        "Columns only": "Enumerates column names only. Select a database and table when required.",
+        "Current context": "Retrieves the DBMS banner, current user, and current database.",
         "Standard audit": "Detection plus basic DBMS and account fingerprinting.",
-        "Database inventory": "Lists databases and tables. Review the target scope first.",
+        "Schema inventory": "Enumerates databases, tables, and columns without dumping rows.",
+        "Database inventory": "Lists databases and tables with basic DBMS fingerprinting.",
+        "Stealth / WAF-aware": "Low-rate, heuristic-first checks with one thread and a rotating user agent. Choose tamper scripts separately when appropriate.",
+        "Stealth via Tor": "Low-rate checks through Tor. Requires a working local Tor proxy and authorized scope.",
+        "Fast audit": "A faster general audit using more threads and reduced connection retries.",
+        "Crawler - links and forms": "Conservative crawl of links and forms, excluding common state-changing paths.",
+        "Crawler - broad discovery": "Deeper crawl of links and forms with moderate concurrency and error parsing.",
+        "Crawler - aggressive audit": "Deep, concurrent crawl with full enumeration. Expect substantially more requests.",
+        "Deep audit - loud": "Maximum built-in level/risk with full enumeration and forms testing. Use only on approved scopes.",
     }
     return descriptions.get(name, "User-defined profile")
 
