@@ -19,6 +19,7 @@ from __future__ import print_function
 import io
 import json
 import os
+import re
 import sys
 import webbrowser
 
@@ -42,6 +43,9 @@ from lib.gui.models import profile_description
 from lib.gui.runner import ScanRunner
 from lib.gui.runner import create_report_file
 from thirdparty.six.moves import configparser as _configparser
+
+
+_ANSI_SGR_RE = re.compile(r"\x1b\[([0-9;]*)m")
 
 
 class SqlmapGui(object):
@@ -480,7 +484,15 @@ class SqlmapGui(object):
                                                           font=self.fonts["mono"], padx=10, pady=8)
         self.output_text.grid(row=1, column=0, sticky="nsew")
         self.output_text.tag_configure("system", foreground="#9bb5a4")
-        self.output_text.tag_configure("error", foreground="#ff9a9f")
+        self.output_text.tag_configure("command", foreground="#9de0a9")
+        self.output_text.tag_configure("banner", foreground="#79c0ff")
+        self.output_text.tag_configure("info", foreground="#7ee787")
+        self.output_text.tag_configure("warning", foreground="#f2cc60")
+        self.output_text.tag_configure("error", foreground="#ff7b72")
+        self.output_text.tag_configure("critical", foreground="#ff7b72", font=(self.fonts["mono"][0], self.fonts["mono"][1], "bold"))
+        self.output_text.tag_configure("debug", foreground="#a5d6ff")
+        self.output_text.tag_configure("payload", foreground="#79c0ff")
+        self.output_text.tag_configure("traffic", foreground="#d2a8ff")
 
         input_bar = ttk.Frame(tab, style="Surface.TFrame", padding=(0, 8, 0, 0))
         input_bar.grid(row=2, column=0, sticky="ew")
@@ -801,7 +813,7 @@ class SqlmapGui(object):
         command += args
         # Structured reporting is an implementation detail of the GUI. It
         # avoids parsing human-readable console lines and is shared with the API.
-        command += ["--report-json", report_path, "--disable-coloring"]
+        command += ["--report-json", report_path]
         try:
             self.runner.start(command, report_path=report_path)
         except Exception as ex:
@@ -812,7 +824,7 @@ class SqlmapGui(object):
         self.report = None
         self.report_path = report_path
         self.clear_output()
-        self._append_output("$ %s\n\n" % self._format_command(command), "system")
+        self._append_output("$ %s\n\n" % self._format_command(command), "command")
         self.notebook.select(3)
         self.status_var.set("Running")
         self.hint_var.set("sqlmap is running; output will appear here")
@@ -910,14 +922,57 @@ class SqlmapGui(object):
     # ------------------------------------------------------------------
     # Output, results, and file helpers
 
+    def _output_tag(self, value):
+        """Map sqlmap log levels to terminal colors without touching the engine."""
+        raw = to_text(value)
+        ansi_tags = {
+            "31": "error", "91": "critical",
+            "33": "warning", "93": "warning",
+            "32": "info", "92": "info",
+            "34": "info", "35": "traffic", "36": "payload",
+            "90": "debug",
+        }
+        for sequence in _ANSI_SGR_RE.findall(raw):
+            for code in sequence.split(";"):
+                if code in ansi_tags:
+                    return ansi_tags[code]
+
+        value = _ANSI_SGR_RE.sub("", raw)
+        if "https://sqlmap.org" in value and "___" in value:
+            return "banner"
+        if "[CRITICAL]" in value:
+            return "critical"
+        if "[ERROR]" in value:
+            return "error"
+        if "[WARNING]" in value:
+            return "warning"
+        if "[PAYLOAD]" in value:
+            return "payload"
+        if "[TRAFFIC OUT]" in value or "[TRAFFIC IN]" in value:
+            return "traffic"
+        if "[DEBUG]" in value:
+            return "debug"
+        if "[INFO]" in value:
+            return "info"
+        return ""
+
     def _append_output(self, value, tag=None):
         try:
             at_bottom = self.output_text.yview()[1] >= 0.985
             self.output_text.configure(state="normal")
-            if tag:
-                self.output_text.insert(self.tk.END, to_text(value), tag)
-            else:
-                self.output_text.insert(self.tk.END, to_text(value))
+            chunks = re.split(r"(?<=\n)", to_text(value))
+            for chunk in chunks:
+                if not chunk:
+                    continue
+                # A child process normally sees a pipe instead of a TTY, so
+                # sqlmap may emit plain text. Strip any ANSI that is present
+                # and apply equivalent Tk tags based on sqlmap's log level.
+                rendered = _ANSI_SGR_RE.sub("", chunk).replace("\r", "")
+                chunk_tag = tag or self._output_tag(rendered)
+                if chunk_tag:
+                    self.output_text.insert(self.tk.END, rendered, chunk_tag)
+                else:
+                    self.output_text.insert(self.tk.END, rendered)
             line_count = int(float(self.output_text.index("end-1c").split(".")[0]))
             if line_count > 20000:
                 self.output_text.delete("1.0", "%d.0" % (line_count - 20000))
