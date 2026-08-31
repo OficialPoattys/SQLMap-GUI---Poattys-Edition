@@ -986,6 +986,17 @@ class SqlmapGui(object):
             self.result_payloads[error_root] = errors
             self._insert_value(error_root, errors)
 
+    def _short_value(self, value, limit=180):
+        """Render a compact, single-line preview for a results-tree cell."""
+        try:
+            rendered = json.dumps(value, ensure_ascii=False, sort_keys=True)
+        except (TypeError, ValueError):
+            rendered = to_text(value)
+        rendered = to_text(rendered).replace("\\r", " ").replace("\\n", " ")
+        if len(rendered) > limit:
+            rendered = rendered[:max(1, limit - 3)] + "..."
+        return rendered
+
     def _insert_value(self, parent, value, depth=0):
         if depth > 8:
             child = self.results_tree.insert(parent, self.tk.END, text="...", values=("depth limit",))
