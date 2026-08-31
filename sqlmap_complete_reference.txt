@@ -1,0 +1,1540 @@
+SQLMAP - REFERENCIA COMPLETA DE OPCOES E TAMPERS
+========================================================
+
+Gerado a partir do parser e dos scripts presentes neste repositorio.
+Este arquivo e uma referencia de estudo; a documentacao e o codigo da versao em uso sao a fonte definitiva.
+
+USO RESPONSAVEL
+---------------
+Use sqlmap somente em sistemas, APIs e dados para os quais voce possui autorizacao explicita.
+Substitua <TARGET_URL> por um alvo autorizado. Nao confunda exit code 0 com vulnerabilidade encontrada.
+Opcoes como --risk, --level, --threads, --all e --crawl podem aumentar trafego, impacto e ruido.
+Tampers sao transformacoes de payload e nao constituem prova de WAF ou de vulnerabilidade.
+
+GUIA RAPIDO DAS OPCOES MAIS USADAS
+---------------------------------
+--batch
+  Funcao: Nunca solicita entrada e usa o comportamento padrao. Indicado somente quando a automacao ja foi revisada.
+--random-agent
+  Funcao: Escolhe um User-Agent aleatorio. Nao fornece anonimato nem garante bypass de WAF.
+--banner
+  Funcao: Solicita o banner/versao do DBMS depois que uma injecao e identificada.
+--dbs
+  Funcao: Enumera os nomes dos bancos de dados.
+--tables
+  Funcao: Enumera tabelas; geralmente requer -D/--db.
+--columns
+  Funcao: Enumera colunas; geralmente requer -D/--db e -T/--tables.
+--dump
+  Funcao: Recupera os dados da tabela selecionada.
+--crawl=N
+  Funcao: Crawleia links ate a profundidade N; nao e um scanner de diretorios.
+--forms
+  Funcao: Analisa e testa formularios encontrados.
+--tamper=nome[,nome]
+  Funcao: Transforma payloads antes do envio; a compatibilidade depende do DBMS e do WAF.
+--level=1..5
+  Funcao: Aumenta a cobertura e a quantidade de testes.
+--risk=1..3
+  Funcao: Aumenta o potencial de impacto dos testes.
+--technique=BEUSTQ
+  Funcao: Seleciona Boolean, Error, Union, Stacked, Time e Query/null.
+--threads=N
+  Funcao: Aumenta requisicoes concorrentes, velocidade e ruido.
+--delay=N
+  Funcao: Adiciona atraso entre requisicoes.
+--timeout=N
+  Funcao: Define o tempo limite de conexao.
+--retries=N
+  Funcao: Define tentativas extras em timeouts.
+--smart
+  Funcao: Executa testes completos somente depois de heuristica positiva.
+--proxy=URL
+  Funcao: Envia requisicoes por um proxy controlado.
+--tor
+  Funcao: Usa uma instancia Tor local configurada.
+--report-json=ARQUIVO
+  Funcao: Grava um relatorio estruturado em JSON.
+--har=ARQUIVO
+  Funcao: Registra o trafego HTTP da execucao em HAR; nao carrega HAR como entrada.
+
+REFERENCIA COMPLETA DAS OPCOES DO PARSER
+-----------------------------------------
+Inclui opcoes publicas e, ao final, opcoes internas/experimentais com ajuda suprimida.
+
+Total de opcoes publicas: 243
+
+[General] - opcoes globais, saida, sessao, crawling e automacao
+------------------------------------------------------------------------------
+001. -hh
+    dest=advancedHelp | tipo=boolean
+    Funcao: Show advanced help message and exit
+
+002. --version
+    dest=showVersion | tipo=boolean
+    Funcao: Show program's version number and exit
+
+003. -v
+    dest=verbose | tipo=int
+    Funcao: Verbosity level: 0-6 (default 1)
+
+[Target] - definicao das fontes de alvo
+------------------------------------------------------------------------------
+004. -u, --url
+    dest=url | tipo=string
+    Funcao: Target URL (e.g. "http://www.site.com/vuln.php?id=1")
+
+005. -d
+    dest=direct | tipo=string
+    Funcao: Connection string for direct database connection
+
+006. -l
+    dest=logFile | tipo=string
+    Funcao: Parse target(s) from Burp or WebScarab proxy log file
+
+007. -m
+    dest=bulkFile | tipo=string
+    Funcao: Scan multiple targets given in a textual file
+
+008. -r
+    dest=requestFile | tipo=string
+    Funcao: Load HTTP request from a file
+
+009. -g
+    dest=googleDork | tipo=string
+    Funcao: Process Google dork results as target URLs
+
+010. -c
+    dest=configFile | tipo=string
+    Funcao: Load options from a configuration INI file
+
+011. --openapi
+    dest=openApiFile | tipo=string
+    Funcao: Derive targets from OpenAPI/Swagger (file/URL)
+
+012. --openapi-base
+    dest=openApiBase | tipo=string
+    Funcao: Base URL for a host-less OpenAPI/Swagger spec
+
+013. --openapi-tags
+    dest=openApiTags | tipo=string
+    Funcao: Only derive targets from operations with these tag(s)
+
+[Request] - requisicoes HTTP, headers, cookies e proxy
+------------------------------------------------------------------------------
+014. -A, --user-agent
+    dest=agent | tipo=string
+    Funcao: HTTP User-Agent header value
+
+015. -H, --header
+    dest=header | tipo=string
+    Funcao: Extra header (e.g. "X-Forwarded-For: 127.0.0.1")
+
+016. -X, --method
+    dest=method | tipo=string
+    Funcao: Force usage of given HTTP method (e.g. PUT)
+
+017. --data
+    dest=data | tipo=string
+    Funcao: Data string to be sent through POST (e.g. "id=1")
+
+018. --param-del
+    dest=paramDel | tipo=string
+    Funcao: Character used for splitting parameter values (e.g. &)
+
+019. --cookie
+    dest=cookie | tipo=string
+    Funcao: HTTP Cookie header value (e.g. "PHPSESSID=a8d127e..")
+
+020. --cookie-del
+    dest=cookieDel | tipo=string
+    Funcao: Character used for splitting cookie values (e.g. ;)
+
+021. --live-cookies
+    dest=liveCookies | tipo=string
+    Funcao: Live cookies file used for loading up-to-date values
+
+022. --load-cookies
+    dest=loadCookies | tipo=string
+    Funcao: File containing cookies in Netscape/wget format
+
+023. --drop-set-cookie
+    dest=dropSetCookie | tipo=boolean
+    Funcao: Ignore Set-Cookie header from response
+
+024. --http1.0
+    dest=http10 | tipo=boolean
+    Funcao: Use HTTP version 1.0 (old)
+
+025. --http2
+    dest=http2 | tipo=boolean
+    Funcao: Use HTTP version 2 (experimental)
+
+026. --mobile
+    dest=mobile | tipo=boolean
+    Funcao: Imitate smartphone through HTTP User-Agent header
+
+027. --random-agent
+    dest=randomAgent | tipo=boolean
+    Funcao: Use randomly selected HTTP User-Agent header value
+
+028. --host
+    dest=host | tipo=string
+    Funcao: HTTP Host header value
+
+029. --referer
+    dest=referer | tipo=string
+    Funcao: HTTP Referer header value
+
+030. --headers
+    dest=headers | tipo=string
+    Funcao: Extra headers (e.g. "Accept-Language: fr\nETag: 123")
+
+031. --auth-type
+    dest=authType | tipo=string
+    Funcao: HTTP authentication type (Basic, Digest, Bearer, ...)
+
+032. --auth-cred
+    dest=authCred | tipo=string
+    Funcao: HTTP authentication credentials (name:password)
+
+033. --auth-file
+    dest=authFile | tipo=string
+    Funcao: HTTP authentication PEM cert/private key file
+
+034. --abort-code
+    dest=abortCode | tipo=string
+    Funcao: Abort on (problematic) HTTP error code(s) (e.g. 401)
+
+035. --ignore-code
+    dest=ignoreCode | tipo=string
+    Funcao: Ignore (problematic) HTTP error code(s) (e.g. 401)
+
+036. --ignore-proxy
+    dest=ignoreProxy | tipo=boolean
+    Funcao: Ignore system default proxy settings
+
+037. --ignore-redirects
+    dest=ignoreRedirects | tipo=boolean
+    Funcao: Ignore redirection attempts
+
+038. --ignore-timeouts
+    dest=ignoreTimeouts | tipo=boolean
+    Funcao: Ignore connection timeouts
+
+039. --proxy
+    dest=proxy | tipo=string
+    Funcao: Use a proxy to connect to the target URL
+
+040. --proxy-cred
+    dest=proxyCred | tipo=string
+    Funcao: Proxy authentication credentials (name:password)
+
+041. --proxy-file
+    dest=proxyFile | tipo=string
+    Funcao: Load proxy list from a file
+
+042. --proxy-freq
+    dest=proxyFreq | tipo=int
+    Funcao: Requests between change of proxy from a given list
+
+043. --tor
+    dest=tor | tipo=boolean
+    Funcao: Use Tor anonymity network
+
+044. --tor-port
+    dest=torPort | tipo=string
+    Funcao: Set Tor proxy port other than default
+
+045. --tor-type
+    dest=torType | tipo=string
+    Funcao: Set Tor proxy type (HTTP, SOCKS4 or SOCKS5 (default))
+
+046. --check-tor
+    dest=checkTor | tipo=boolean
+    Funcao: Check to see if Tor is used properly
+
+047. --delay
+    dest=delay | tipo=float
+    Funcao: Delay in seconds between each HTTP request
+
+048. --timeout
+    dest=timeout | tipo=float
+    Funcao: Seconds to wait before timeout connection (default 30)
+
+049. --retries
+    dest=retries | tipo=int
+    Funcao: Retries when the connection timeouts (default 3)
+
+050. --retry-on
+    dest=retryOn | tipo=string
+    Funcao: Retry request on regexp matching content (e.g. "drop")
+
+051. --randomize
+    dest=rParam | tipo=string
+    Funcao: Randomly change value for given parameter(s)
+
+052. --safe-url
+    dest=safeUrl | tipo=string
+    Funcao: URL address to visit frequently during testing
+
+053. --safe-post
+    dest=safePost | tipo=string
+    Funcao: POST data to send to a safe URL
+
+054. --safe-req
+    dest=safeReqFile | tipo=string
+    Funcao: Load safe HTTP request from a file
+
+055. --safe-freq
+    dest=safeFreq | tipo=int
+    Funcao: Regular requests between visits to a safe URL
+
+056. --skip-urlencode
+    dest=skipUrlEncode | tipo=boolean
+    Funcao: Skip URL encoding of payload data
+
+057. --skip-xmlencode
+    dest=skipXmlEncode | tipo=boolean
+    Funcao: Skip safe encoding of payload data for SOAP/XML
+
+058. --csrf-token
+    dest=csrfToken | tipo=string
+    Funcao: Parameter used to hold anti-CSRF token
+
+059. --csrf-url
+    dest=csrfUrl | tipo=string
+    Funcao: URL address to visit for extraction of anti-CSRF token
+
+060. --csrf-method
+    dest=csrfMethod | tipo=string
+    Funcao: HTTP method to use during anti-CSRF token page visit
+
+061. --csrf-data
+    dest=csrfData | tipo=string
+    Funcao: POST data to send during anti-CSRF token page visit
+
+062. --csrf-retries
+    dest=csrfRetries | tipo=int
+    Funcao: Retries for anti-CSRF token retrieval (default 0)
+
+063. --force-ssl
+    dest=forceSSL | tipo=boolean
+    Funcao: Force usage of SSL/HTTPS
+
+064. --chunked
+    dest=chunked | tipo=boolean
+    Funcao: Use HTTP chunked transfer encoded (POST) requests
+
+065. --hpp
+    dest=hpp | tipo=boolean
+    Funcao: Use HTTP parameter pollution method
+
+066. --eval
+    dest=evalCode | tipo=string
+    Funcao: Evaluate provided Python code before the request (e.g. "import hashlib;id2=hashlib.md5(id).hexdigest()")
+
+[Optimization] - otimizacao e concorrencia
+------------------------------------------------------------------------------
+067. -o
+    dest=optimize | tipo=boolean
+    Funcao: Turn on all optimization switches
+
+068. --no-keep-alive
+    dest=noKeepAlive | tipo=boolean
+    Funcao: Disable persistent HTTP(s) connections (Keep-Alive)
+
+069. --null-connection
+    dest=nullConnection | tipo=boolean
+    Funcao: Retrieve page length without actual HTTP response body
+
+070. --threads
+    dest=threads | tipo=int
+    Funcao: Max number of concurrent HTTP(s) requests (default 1)
+
+[Injection] - pontos de injecao e transformacao de payloads
+------------------------------------------------------------------------------
+071. -p
+    dest=testParameter | tipo=string
+    Funcao: Testable parameter(s)
+
+072. --skip
+    dest=skip | tipo=string
+    Funcao: Skip testing for given parameter(s)
+
+073. --skip-static
+    dest=skipStatic | tipo=boolean
+    Funcao: Skip testing parameters that do not appear to be dynamic
+
+074. --param-exclude
+    dest=paramExclude | tipo=string
+    Funcao: Regexp to exclude parameters from testing (e.g. "ses")
+
+075. --param-filter
+    dest=paramFilter | tipo=string
+    Funcao: Select testable parameter(s) by place (e.g. "POST")
+
+076. --dbms
+    dest=dbms | tipo=string
+    Funcao: Force back-end DBMS to provided value
+
+077. --dbms-cred
+    dest=dbmsCred | tipo=string
+    Funcao: DBMS authentication credentials (user:password)
+
+078. --esperanto
+    dest=esperanto | tipo=boolean
+    Funcao: Use the DBMS-agnostic enumeration engine
+
+079. --os
+    dest=os | tipo=string
+    Funcao: Force back-end DBMS operating system to provided value
+
+080. --invalid-bignum
+    dest=invalidBignum | tipo=boolean
+    Funcao: Use big numbers for invalidating values
+
+081. --invalid-logical
+    dest=invalidLogical | tipo=boolean
+    Funcao: Use logical operations for invalidating values
+
+082. --invalid-string
+    dest=invalidString | tipo=boolean
+    Funcao: Use random strings for invalidating values
+
+083. --no-cast
+    dest=noCast | tipo=boolean
+    Funcao: Turn off payload casting mechanism
+
+084. --no-escape
+    dest=noEscape | tipo=boolean
+    Funcao: Turn off string escaping mechanism
+
+085. --prefix
+    dest=prefix | tipo=string
+    Funcao: Injection payload prefix string
+
+086. --suffix
+    dest=suffix | tipo=string
+    Funcao: Injection payload suffix string
+
+087. --tamper
+    dest=tamper | tipo=string
+    Funcao: Use given script(s) for tampering injection data
+
+088. --proof
+    dest=proof | tipo=boolean
+    Funcao: Prove exploitation of the detected injection point(s)
+
+[Detection] - deteccao e comparacao de respostas
+------------------------------------------------------------------------------
+089. --level
+    dest=level | tipo=int
+    Funcao: Level of tests to perform (1-5, default 1)
+
+090. --risk
+    dest=risk | tipo=int
+    Funcao: Risk of tests to perform (1-3, default 1)
+
+091. --string
+    dest=string | tipo=string
+    Funcao: String to match when query is evaluated to True
+
+092. --not-string
+    dest=notString | tipo=string
+    Funcao: String to match when query is evaluated to False
+
+093. --regexp
+    dest=regexp | tipo=string
+    Funcao: Regexp to match when query is evaluated to True
+
+094. --code
+    dest=code | tipo=int
+    Funcao: HTTP code to match when query is evaluated to True
+
+095. --lengths
+    dest=lengths | tipo=boolean
+    Funcao: Compare pages based only on their content length
+
+096. --smart
+    dest=smart | tipo=boolean
+    Funcao: Perform thorough tests only if positive heuristic(s)
+
+097. --text-only
+    dest=textOnly | tipo=boolean
+    Funcao: Compare pages based only on the textual content
+
+098. --titles
+    dest=titles | tipo=boolean
+    Funcao: Compare pages based only on their titles
+
+[Techniques] - tecnicas de SQL injection
+------------------------------------------------------------------------------
+099. --technique
+    dest=technique | tipo=string
+    Funcao: SQL injection techniques to use (default "BEUSTQ")
+
+100. --time-sec
+    dest=timeSec | tipo=int
+    Funcao: Seconds to delay the DBMS response (default 5)
+
+101. --disable-stats
+    dest=disableStats | tipo=boolean
+    Funcao: Disable the statistical model for detecting the delay
+
+102. --timeless
+    dest=timeless | tipo=boolean
+    Funcao: Use HTTP/2 timeless timing (faster, no delay)
+
+103. --multi-bit
+    dest=multiBit | tipo=boolean
+    Funcao: Use rendered rows to read several bits per request
+
+104. --union-cols
+    dest=uCols | tipo=string
+    Funcao: Range of columns to test for UNION query SQL injection
+
+105. --union-char
+    dest=uChar | tipo=string
+    Funcao: Character to use for bruteforcing number of columns
+
+106. --union-from
+    dest=uFrom | tipo=string
+    Funcao: Table to use in FROM part of UNION query SQL injection
+
+107. --union-values
+    dest=uValues | tipo=string
+    Funcao: Column values to use for UNION query SQL injection
+
+108. --dns-domain
+    dest=dnsDomain | tipo=string
+    Funcao: Domain name used for DNS exfiltration attack (or 'interactsh' for zero-setup OOB)
+
+109. --second-url
+    dest=secondUrl | tipo=string
+    Funcao: Resulting page URL searched for second-order response
+
+110. --second-req
+    dest=secondReq | tipo=string
+    Funcao: Load second-order HTTP request from file
+
+[Fingerprint] - fingerprinting do DBMS
+------------------------------------------------------------------------------
+111. -f, --fingerprint
+    dest=extensiveFp | tipo=boolean
+    Funcao: Perform an extensive DBMS version fingerprint
+
+[Enumeration] - enumeracao e recuperacao de dados
+------------------------------------------------------------------------------
+112. -a, --all
+    dest=getAll | tipo=boolean
+    Funcao: Retrieve everything
+
+113. -b, --banner
+    dest=getBanner | tipo=boolean
+    Funcao: Retrieve DBMS banner
+
+114. --current-user
+    dest=getCurrentUser | tipo=boolean
+    Funcao: Retrieve DBMS current user
+
+115. --current-db
+    dest=getCurrentDb | tipo=boolean
+    Funcao: Retrieve DBMS current database
+
+116. --hostname
+    dest=getHostname | tipo=boolean
+    Funcao: Retrieve DBMS server hostname
+
+117. --is-dba
+    dest=isDba | tipo=boolean
+    Funcao: Detect if the DBMS current user is DBA
+
+118. --users
+    dest=getUsers | tipo=boolean
+    Funcao: Enumerate DBMS users
+
+119. --passwords
+    dest=getPasswordHashes | tipo=boolean
+    Funcao: Enumerate DBMS users password hashes
+
+120. --privileges
+    dest=getPrivileges | tipo=boolean
+    Funcao: Enumerate DBMS users privileges
+
+121. --roles
+    dest=getRoles | tipo=boolean
+    Funcao: Enumerate DBMS users roles
+
+122. --dbs
+    dest=getDbs | tipo=boolean
+    Funcao: Enumerate DBMS databases
+
+123. --tables
+    dest=getTables | tipo=boolean
+    Funcao: Enumerate DBMS database tables
+
+124. --columns
+    dest=getColumns | tipo=boolean
+    Funcao: Enumerate DBMS database table columns
+
+125. --schema
+    dest=getSchema | tipo=boolean
+    Funcao: Enumerate DBMS schema
+
+126. --count
+    dest=getCount | tipo=boolean
+    Funcao: Retrieve number of entries for table(s)
+
+127. --dump
+    dest=dumpTable | tipo=boolean
+    Funcao: Dump DBMS database table entries
+
+128. --dump-all
+    dest=dumpAll | tipo=boolean
+    Funcao: Dump entries of all DBMS database tables
+
+129. --search
+    dest=search | tipo=boolean
+    Funcao: Search column(s), table(s) and/or database name(s)
+
+130. --comments
+    dest=getComments | tipo=boolean
+    Funcao: Check for DBMS comments during enumeration
+
+131. --statements
+    dest=getStatements | tipo=boolean
+    Funcao: Retrieve SQL statements being run on DBMS
+
+132. --procs
+    dest=getProcs | tipo=boolean
+    Funcao: Retrieve stored procedures/functions and their source
+
+133. -D
+    dest=db | tipo=string
+    Funcao: DBMS database to enumerate
+
+134. -T
+    dest=tbl | tipo=string
+    Funcao: DBMS database table(s) to enumerate
+
+135. -C
+    dest=col | tipo=string
+    Funcao: DBMS database table column(s) to enumerate
+
+136. --exclude
+    dest=exclude | tipo=string
+    Funcao: DBMS database identifier(s) to not enumerate
+
+137. -U
+    dest=user | tipo=string
+    Funcao: DBMS user to enumerate
+
+138. --exclude-sysdbs
+    dest=excludeSysDbs | tipo=boolean
+    Funcao: Exclude DBMS system databases when enumerating tables
+
+139. --pivot-column
+    dest=pivotColumn | tipo=string
+    Funcao: Pivot column name
+
+140. --where
+    dest=dumpWhere | tipo=string
+    Funcao: Use WHERE condition while table dumping
+
+141. --start
+    dest=limitStart | tipo=int
+    Funcao: First dump table entry to retrieve
+
+142. --stop
+    dest=limitStop | tipo=int
+    Funcao: Last dump table entry to retrieve
+
+143. --first
+    dest=firstChar | tipo=int
+    Funcao: First query output word character to retrieve
+
+144. --last
+    dest=lastChar | tipo=int
+    Funcao: Last query output word character to retrieve
+
+145. --sql-query
+    dest=sqlQuery | tipo=string
+    Funcao: SQL statement to be executed
+
+146. --sql-shell
+    dest=sqlShell | tipo=boolean
+    Funcao: Prompt for an interactive SQL shell
+
+147. --sql-file
+    dest=sqlFile | tipo=string
+    Funcao: Execute SQL statements from given file(s)
+
+[Brute force] - brute force de nomes e credenciais
+------------------------------------------------------------------------------
+148. --common-tables
+    dest=commonTables | tipo=boolean
+    Funcao: Check existence of common tables
+
+149. --common-columns
+    dest=commonColumns | tipo=boolean
+    Funcao: Check existence of common columns
+
+150. --common-files
+    dest=commonFiles | tipo=boolean
+    Funcao: Check existence of common files
+
+[User-defined function injection] - funcoes definidas pelo usuario
+------------------------------------------------------------------------------
+151. --udf-inject
+    dest=udfInject | tipo=boolean
+    Funcao: Inject custom user-defined functions
+
+152. --shared-lib
+    dest=shLib | tipo=string
+    Funcao: Local path of the shared library
+
+[File system access] - acesso ao sistema de arquivos
+------------------------------------------------------------------------------
+153. --file-read
+    dest=fileRead | tipo=string
+    Funcao: Read a file from the back-end DBMS file system
+
+154. --file-write
+    dest=fileWrite | tipo=string
+    Funcao: Write a local file on the back-end DBMS file system
+
+155. --file-dest
+    dest=fileDest | tipo=string
+    Funcao: Back-end DBMS absolute filepath to write to
+
+[Operating system access] - acesso ao sistema operacional
+------------------------------------------------------------------------------
+156. --os-cmd
+    dest=osCmd | tipo=string
+    Funcao: Execute an operating system command
+
+157. --os-shell
+    dest=osShell | tipo=boolean
+    Funcao: Prompt for an interactive operating system shell
+
+158. --os-pwn
+    dest=osPwn | tipo=boolean
+    Funcao: Prompt for an OOB shell, Meterpreter or VNC
+
+159. --os-smbrelay
+    dest=osSmb | tipo=boolean
+    Funcao: One-click prompt for an OOB shell, Meterpreter or VNC
+
+160. --os-bof
+    dest=osBof | tipo=boolean
+    Funcao: Stored procedure buffer overflow exploitation
+
+161. --priv-esc
+    dest=privEsc | tipo=boolean
+    Funcao: Database process user privilege escalation
+
+162. --msf-path
+    dest=msfPath | tipo=string
+    Funcao: Local path where Metasploit Framework is installed
+
+163. --tmp-path
+    dest=tmpPath | tipo=string
+    Funcao: Remote absolute path of temporary files directory
+
+[Windows registry access] - acesso ao registro do Windows
+------------------------------------------------------------------------------
+164. --reg-read
+    dest=regRead | tipo=boolean
+    Funcao: Read a Windows registry key value
+
+165. --reg-add
+    dest=regAdd | tipo=boolean
+    Funcao: Write a Windows registry key value data
+
+166. --reg-del
+    dest=regDel | tipo=boolean
+    Funcao: Delete a Windows registry key value
+
+167. --reg-key
+    dest=regKey | tipo=string
+    Funcao: Windows registry key
+
+168. --reg-value
+    dest=regVal | tipo=string
+    Funcao: Windows registry key value
+
+169. --reg-data
+    dest=regData | tipo=string
+    Funcao: Windows registry key value data
+
+170. --reg-type
+    dest=regType | tipo=string
+    Funcao: Windows registry key value type
+
+[General] - opcoes globais, saida, sessao, crawling e automacao
+------------------------------------------------------------------------------
+171. -s
+    dest=sessionFile | tipo=string
+    Funcao: Load session from a stored (.sqlite) file
+
+172. -t
+    dest=trafficFile | tipo=string
+    Funcao: Log all HTTP traffic into a textual file
+
+173. --abort-on-empty
+    dest=abortOnEmpty | tipo=boolean
+    Funcao: Abort data retrieval on empty results
+
+174. --answers
+    dest=answers | tipo=string
+    Funcao: Set predefined answers (e.g. "quit=N,follow=N")
+
+175. --base64
+    dest=base64Parameter | tipo=string
+    Funcao: Parameter(s) containing Base64 encoded data
+
+176. --base64-safe
+    dest=base64Safe | tipo=boolean
+    Funcao: Use URL and filename safe Base64 alphabet (RFC 4648)
+
+177. --batch
+    dest=batch | tipo=boolean
+    Funcao: Never ask for user input, use the default behavior
+
+178. --binary-fields
+    dest=binaryFields | tipo=string
+    Funcao: Result fields having binary values (e.g. "digest")
+
+179. --check-internet
+    dest=checkInternet | tipo=boolean
+    Funcao: Check Internet connection before assessing the target
+
+180. --cleanup
+    dest=cleanup | tipo=boolean
+    Funcao: Clean up the DBMS from sqlmap specific UDF and tables
+
+181. --crawl
+    dest=crawlDepth | tipo=int
+    Funcao: Crawl the website starting from the target URL
+
+182. --crawl-exclude
+    dest=crawlExclude | tipo=string
+    Funcao: Regexp to exclude pages from crawling (e.g. "logout")
+
+183. --csv-del
+    dest=csvDel | tipo=string
+    Funcao: Delimiting character used in CSV output (default ",")
+
+184. --charset
+    dest=charset | tipo=string
+    Funcao: Blind SQL injection charset (e.g. "0123456789abcdef")
+
+185. --dump-file
+    dest=dumpFile | tipo=string
+    Funcao: Store dumped data to a custom file
+
+186. --dump-format
+    dest=dumpFormat | tipo=string
+    Funcao: Dump data format (CSV (default), HTML, SQLITE, JSONL)
+
+187. --encoding
+    dest=encoding | tipo=string
+    Funcao: Character encoding used for data retrieval (e.g. GBK)
+
+188. --eta
+    dest=eta | tipo=boolean
+    Funcao: Display for each output the estimated time of arrival
+
+189. --flush-session
+    dest=flushSession | tipo=boolean
+    Funcao: Flush session files for current target
+
+190. --forms
+    dest=forms | tipo=boolean
+    Funcao: Parse and test forms on target URL
+
+191. --mine-params
+    dest=mineParams | tipo=boolean
+    Funcao: Mine for hidden (unlinked) GET parameters to test
+
+192. --fresh-queries
+    dest=freshQueries | tipo=boolean
+    Funcao: Ignore query results stored in session file
+
+193. --gpage
+    dest=googlePage | tipo=int
+    Funcao: Use Google dork results from specified page number
+
+194. --har
+    dest=harFile | tipo=string
+    Funcao: Log all HTTP traffic into a HAR file
+
+195. --hex
+    dest=hexConvert | tipo=boolean
+    Funcao: Use hex conversion during data retrieval
+
+196. --output-dir
+    dest=outputDir | tipo=string
+    Funcao: Custom output directory path
+
+197. --parse-errors
+    dest=parseErrors | tipo=boolean
+    Funcao: Parse and display DBMS error messages from responses
+
+198. --preprocess
+    dest=preprocess | tipo=string
+    Funcao: Use given script(s) for preprocessing (request)
+
+199. --postprocess
+    dest=postprocess | tipo=string
+    Funcao: Use given script(s) for postprocessing (response)
+
+200. --repair
+    dest=repair | tipo=boolean
+    Funcao: Redump entries having unknown character marker (?)
+
+201. --report-json
+    dest=reportJson | tipo=string
+    Funcao: Store run results to a JSON file
+
+202. --save
+    dest=saveConfig | tipo=string
+    Funcao: Save options to a configuration INI file
+
+203. --scope
+    dest=scope | tipo=string
+    Funcao: Regexp for filtering targets
+
+204. --skip-heuristics
+    dest=skipHeuristics | tipo=boolean
+    Funcao: Skip heuristic detection of vulnerabilities
+
+205. --skip-waf
+    dest=skipWaf | tipo=boolean
+    Funcao: Skip heuristic detection of WAF/IPS protection
+
+206. --table-prefix
+    dest=tablePrefix | tipo=string
+    Funcao: Prefix used for temporary tables (default: "sqlmap")
+
+207. --test-filter
+    dest=testFilter | tipo=string
+    Funcao: Select tests by payloads and/or titles (e.g. ROW)
+
+208. --test-skip
+    dest=testSkip | tipo=string
+    Funcao: Skip tests by payloads and/or titles (e.g. BENCHMARK)
+
+209. --time-limit
+    dest=timeLimit | tipo=float
+    Funcao: Run with a time limit in seconds (e.g. 3600)
+
+210. --unsafe-naming
+    dest=unsafeNaming | tipo=boolean
+    Funcao: Disable escaping of DBMS identifiers (e.g. "user")
+
+211. --web-root
+    dest=webRoot | tipo=string
+    Funcao: Web server document root directory (e.g. "/var/www")
+
+[Non-SQL injection] - tecnicas de injecao nao SQL
+------------------------------------------------------------------------------
+212. --graphql
+    dest=graphql | tipo=boolean
+    Funcao: Test for GraphQL injection
+
+213. --ldap
+    dest=ldap | tipo=boolean
+    Funcao: Test for LDAP injection
+
+214. --nosql
+    dest=nosql | tipo=boolean
+    Funcao: Test for NoSQL injection
+
+215. --xpath
+    dest=xpath | tipo=boolean
+    Funcao: Test for XPath injection
+
+216. --ssti
+    dest=ssti | tipo=boolean
+    Funcao: Test for server-side template injection
+
+217. --xslt
+    dest=xslt | tipo=boolean
+    Funcao: Test for XSLT injection
+
+218. --xxe
+    dest=xxe | tipo=boolean
+    Funcao: Test for XML External Entity (XXE) injection
+
+219. --hql
+    dest=hql | tipo=boolean
+    Funcao: Test for HQL/JPQL (Hibernate ORM) injection
+
+220. --sparql
+    dest=sparql | tipo=boolean
+    Funcao: Test for SPARQL injection
+
+221. --odata
+    dest=odata | tipo=boolean
+    Funcao: Test for OData $filter injection
+
+222. --jwt
+    dest=jwt | tipo=boolean
+    Funcao: Audit JSON Web Tokens (JWT) for weaknesses
+
+223. --oob-server
+    dest=oobServer | tipo=string
+    Funcao: Out-of-band server for blind '--xxe'
+
+224. --oob-token
+    dest=oobToken | tipo=string
+    Funcao: Authentication token for a self-hosted '--oob-server'
+
+[Miscellaneous] - modos auxiliares e recursos diversos
+------------------------------------------------------------------------------
+225. -z
+    dest=mnemonics | tipo=string
+    Funcao: Use short mnemonics (e.g. "flu,bat,ban,tec=EU")
+
+226. --alert
+    dest=alert | tipo=string
+    Funcao: Run host OS command(s) when SQL injection is found
+
+227. --beep
+    dest=beep | tipo=boolean
+    Funcao: Beep on question and/or when vulnerability is found
+
+228. --dependencies
+    dest=dependencies | tipo=boolean
+    Funcao: Check for missing (optional) sqlmap dependencies
+
+229. --disable-coloring
+    dest=disableColoring | tipo=boolean
+    Funcao: Disable console output coloring
+
+230. --disable-hashing
+    dest=disableHashing | tipo=boolean
+    Funcao: Disable hash analysis on table dumps
+
+231. --gui
+    dest=gui | tipo=boolean
+    Funcao: Graphical user interface (Tkinter)
+
+232. --list-tampers
+    dest=listTampers | tipo=boolean
+    Funcao: Display list of available tamper scripts
+
+233. --no-logging
+    dest=noLogging | tipo=boolean
+    Funcao: Disable logging to a file
+
+234. --no-truncate
+    dest=noTruncate | tipo=boolean
+    Funcao: Disable console output truncation (e.g. long entr...)
+
+235. --offline
+    dest=offline | tipo=boolean
+    Funcao: Work in offline mode (only use session data)
+
+236. --purge
+    dest=purge | tipo=boolean
+    Funcao: Safely remove all content from sqlmap data directory
+
+237. --results-file
+    dest=resultsFile | tipo=string
+    Funcao: Location of CSV results file in multiple targets mode
+
+238. --shell
+    dest=shell | tipo=boolean
+    Funcao: Prompt for an interactive sqlmap shell
+
+239. --tmp-dir
+    dest=tmpDir | tipo=string
+    Funcao: Local directory for storing temporary files
+
+240. --tui
+    dest=tui | tipo=boolean
+    Funcao: Textual user interface (ncurses)
+
+241. --unstable
+    dest=unstable | tipo=boolean
+    Funcao: Adjust options for unstable connections
+
+242. --update
+    dest=updateAll | tipo=boolean
+    Funcao: Update sqlmap
+
+243. --wizard
+    dest=wizard | tipo=boolean
+    Funcao: Simple wizard interface for beginner users
+
+OPCOES INTERNAS, EXPERIMENTAIS E DE API
+----------------------------------------
+Estas opcoes fazem parte do parser, mas possuem ajuda suprimida ou sao destinadas a testes/API.
+Foram incluidas para completar o inventario; nao use sem consultar o codigo que as consome.
+
+001. --crack
+    dest=hashFile | tipo=string
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+002. --dummy
+    dest=dummy | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+003. --yuge
+    dest=yuge | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+004. --jitter
+    dest=jitter | tipo=int
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+005. --debug
+    dest=debug | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+006. --deprecations
+    dest=deprecations | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+007. --disable-multi
+    dest=disableMulti | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+008. --disable-precon
+    dest=disablePrecon | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+009. --no-huffman
+    dest=noHuffman | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+010. --profile
+    dest=profile | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+011. --localhost
+    dest=localhost | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+012. --force-dbms
+    dest=forceDbms | tipo=string
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+013. --force-dns
+    dest=forceDns | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+014. --force-partial
+    dest=forcePartial | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+015. --force-pivoting
+    dest=forcePivoting | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+016. --keyset
+    dest=keyset | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+017. --no-keyset
+    dest=noKeyset | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+018. --ignore-stdin
+    dest=ignoreStdin | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+019. --non-interactive
+    dest=nonInteractive | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+020. --smoke-test, --doc-test
+    dest=smokeTest | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+021. --vuln-test
+    dest=vulnTest | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+022. --fp-test
+    dest=fpTest | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+023. --payload-lint
+    dest=payloadLint | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+024. --api-test
+    dest=apiTest | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+025. --disable-json
+    dest=disableJson | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+026. --api
+    dest=api | tipo=boolean
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+027. --taskid
+    dest=taskid | tipo=string
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+028. --database
+    dest=database | tipo=string
+    Funcao: opcao interna/experimental; a ajuda publica foi suprimida pelo parser.
+
+TODOS OS TAMPERS
+----------------
+Total de scripts: 84
+
+Uso: python sqlmap.py --url "<TARGET_URL>" --tamper=NOME
+Encadeamento: --tamper=script1,script2. Prefira validar um script por vez.
+A ordem pode ser resolvida pelo sqlmap conforme as prioridades declaradas pelos scripts.
+
+01. 0eunion
+    Funcao: Replaces an integer followed by UNION with an integer followed by e0UNION
+    Prioridade: HIGHEST
+
+02. apostrophemask
+    Funcao: Replaces single quotes (') with their UTF-8 full-width equivalents (e.g. ' -> %EF%BC%87)
+    Prioridade: LOWEST
+
+03. apostrophenullencode
+    Funcao: Replaces single quotes (') with an illegal double Unicode encoding (e.g. ' -> %00%27)
+    Prioridade: LOWEST
+
+04. appendnullbyte
+    Funcao: Appends an (Access) NULL byte character (%00) at the end of payload
+    Prioridade: LOWEST
+
+05. base64encode
+    Funcao: Encodes the entire payload using Base64
+    Prioridade: LOW
+
+06. between
+    Funcao: Replaces the greater-than operator (>) with NOT BETWEEN 0 AND # and the equal sign (=) with BETWEEN # AND #
+    Prioridade: HIGHEST
+
+07. binary
+    Funcao: Injects the keyword binary where applicable
+    Prioridade: HIGHEST
+
+08. blindbinary
+    Funcao: Rewrites blind single-character reads into a firewall-transparent, byte-ordered comparison that sheds the function names anomaly-scoring WAFs key on:
+    Prioridade: NORMAL
+
+09. bluecoat
+    Funcao: Replaces the space following an SQL statement with a random valid blank character, then converts = to LIKE
+    Prioridade: NORMAL
+
+10. castprefix
+    Funcao: Wraps a leading numeric value into a CAST() call (e.g. -1 UNION ... -> cast(-1 as decimal) UNION ...)
+    Prioridade: HIGHEST
+
+11. chardoubleencode
+    Funcao: Double URL-encodes each character in the payload (ignores already encoded ones) (e.g. SELECT -> %2553%2545%254C%2545%2543%2554)
+    Prioridade: LOWEST
+
+12. charencode
+    Funcao: URL-encodes all characters in a given payload (not processing already encoded) (e.g. SELECT -> %53%45%4C%45%43%54)
+    Prioridade: LOWEST
+
+13. charunicodeencode
+    Funcao: Unicode-URL-encodes all characters in a given payload (not processing already encoded) (e.g. SELECT -> %u0053%u0045%u004C%u0045%u0043%u0054)
+    Prioridade: LOWEST
+
+14. charunicodeescape
+    Funcao: Unicode-escapes non-encoded characters in a given payload (not processing already encoded) (e.g. SELECT -> SELECT)
+    Prioridade: LOWEST
+
+15. commalesslimit
+    Funcao: Replaces (MySQL) instances like 'LIMIT M, N' with 'LIMIT N OFFSET M' counterpart
+    Prioridade: HIGH
+
+16. commalessmid
+    Funcao: Replaces (MySQL) instances like 'MID(A, B, C)' with 'MID(A FROM B FOR C)' counterpart
+    Prioridade: HIGH
+
+17. commentbeforeparentheses
+    Funcao: Prepends (inline) comment before parentheses (e.g. ( -> /**/()
+    Prioridade: NORMAL
+
+18. concat2concatws
+    Funcao: Replaces (MySQL) instances like 'CONCAT(A, B)' with 'CONCAT_WS(MID(CHAR(0), 0, 0), A, B)' counterpart
+    Prioridade: HIGHEST
+
+19. decentities
+    Funcao: HTML encode in decimal (using code points) all characters (e.g. ' -> &#39;)
+    Prioridade: LOWEST
+
+20. dollarquote
+    Funcao: Replaces single-quoted strings with PostgreSQL dollar-quoted strings (e.g. 'abc' -> $$abc$$)
+    Prioridade: LOW
+
+21. dunion
+    Funcao: Replaces instances of <int> UNION with <int>DUNION
+    Prioridade: HIGHEST
+
+22. equaltolike
+    Funcao: Replaces all occurrences of operator equal ('=') with 'LIKE' counterpart
+    Prioridade: HIGHEST
+
+23. equaltorlike
+    Funcao: Replaces all occurrences of operator equal ('=') with 'RLIKE' counterpart
+    Prioridade: HIGHEST
+
+24. escapequotes
+    Funcao: Slash escape single and double quotes (e.g. ' -> ')
+    Prioridade: NORMAL
+
+25. greatest
+    Funcao: Replaces greater than operator ('>') with 'GREATEST' counterpart
+    Prioridade: HIGHEST
+
+26. halfversionedmorekeywords
+    Funcao: Adds (MySQL) versioned comment before each keyword
+    Prioridade: HIGHER
+
+27. hex2char
+    Funcao: Replaces each (MySQL) 0x<hex> encoded string with equivalent CONCAT(CHAR(),...) counterpart
+    Prioridade: NORMAL
+
+28. hexentities
+    Funcao: HTML encode in hexadecimal (using code points) all characters (e.g. ' -> &#x31;)
+    Prioridade: LOWEST
+
+29. htmlencode
+    Funcao: HTML encode (using code points) all non-alphanumeric characters (e.g. ' -> &#39;)
+    Prioridade: LOWEST
+
+30. if2case
+    Funcao: Replaces instances like 'IF(A, B, C)' with 'CASE WHEN (A) THEN (B) ELSE (C) END' counterpart
+    Prioridade: HIGHEST
+
+31. ifnull2casewhenisnull
+    Funcao: Replaces instances like 'IFNULL(A, B)' with 'CASE WHEN ISNULL(A) THEN (B) ELSE (A) END' counterpart
+    Prioridade: HIGHEST
+
+32. ifnull2ifisnull
+    Funcao: Replaces instances like 'IFNULL(A, B)' with 'IF(ISNULL(A), B, A)' counterpart
+    Prioridade: HIGHEST
+
+33. informationschemacomment
+    Funcao: Add an inline comment (/**/) to the end of all occurrences of (MySQL) "information_schema" identifier
+    Prioridade: NORMAL
+
+34. infoschema2innodb
+    Funcao: Rewrites MySQL table-enumeration off 'information_schema.tables' onto the InnoDB statistics table 'mysql.innodb_table_stats' (table_schema -> database_name), to dodge WAF rules that flag the 'information_schema' name (e.g. OWASP CRS 942140 'common DB names')
+    Prioridade: NORMAL
+
+35. least
+    Funcao: Replaces greater than operator ('>') with 'LEAST' counterpart
+    Prioridade: HIGHEST
+
+36. lowercase
+    Funcao: Replaces each keyword character with lower case value (e.g. SELECT -> select)
+    Prioridade: NORMAL
+
+37. luanginx
+    Funcao: LUA-Nginx WAFs Bypass (e.g. Cloudflare)
+    Prioridade: NORMAL
+
+38. luanginxmore
+    Funcao: LUA-Nginx WAFs Bypass (e.g. Cloudflare) with 4.2 million parameters
+    Prioridade: HIGHEST
+
+39. mid2leftright
+    Funcao: Replaces (MySQL) instances like 'MID(A, B, C)' with 'RIGHT(LEFT(A, B+C-1), C)' counterpart
+    Prioridade: HIGHEST
+
+40. misunion
+    Funcao: Replaces instances of UNION with -.1UNION
+    Prioridade: HIGHEST
+
+41. modsecurityversioned
+    Funcao: Embraces complete query with (MySQL) versioned comment
+    Prioridade: HIGHER
+
+42. modsecurityzeroversioned
+    Funcao: Embraces complete query with (MySQL) zero-versioned comment
+    Prioridade: HIGHER
+
+43. mssqlnosemicolon
+    Funcao: Replaces (MsSQL) statement separator ';' with a blank character
+    Prioridade: HIGHEST
+
+44. multiplespaces
+    Funcao: Adds multiple spaces (' ') around SQL keywords
+    Prioridade: NORMAL
+
+45. odbcbrace
+    Funcao: Prepends a (MySQL) ODBC escape sequence to a numeric payload (e.g. -1 UNION ... -> {x !0}*-1 UNION ...)
+    Prioridade: HIGHEST
+
+46. oraclequote
+    Funcao: Replaces single-quoted strings with Oracle alternative-quoted strings (e.g. 'abc' -> q'[abc]')
+    Prioridade: LOW
+
+47. ord2ascii
+    Funcao: Replaces ORD() occurences with equivalent ASCII() calls Requirement: * MySQL >>> tamper("ORD('42')") "ASCII('42')"
+    Prioridade: HIGHEST
+
+48. overlongutf8
+    Funcao: Converts all (non-alphanum) characters in a given payload to overlong UTF8 (not processing already encoded) (e.g. ' -> %C0%A7)
+    Prioridade: LOWEST
+
+49. overlongutf8more
+    Funcao: Converts all characters in a given payload to overlong UTF8 (not processing already encoded) (e.g. SELECT -> %C1%93%C1%85%C1%8C%C1%85%C1%83%C1%94)
+    Prioridade: LOWEST
+
+50. percentage
+    Funcao: Adds a percentage sign ('%') infront of each character (e.g. SELECT -> %S%E%L%E%C%T)
+    Prioridade: LOWEST
+
+51. plus2concat
+    Funcao: Replaces plus operator ('+') with (MsSQL) function CONCAT() counterpart
+    Prioridade: HIGHEST
+
+52. plus2fnconcat
+    Funcao: Replaces plus operator ('+') with (MsSQL) ODBC function {fn CONCAT()} counterpart
+    Prioridade: HIGHEST
+
+53. quote2ltat
+    Funcao: Adds '<@' right after a leading single quote followed by OR (e.g. ' OR 1=1-- - -> '<@ OR 1=1-- -)
+    Prioridade: HIGHEST
+
+54. randomcase
+    Funcao: Replaces each keyword character with random case value (e.g. SELECT -> SEleCt)
+    Prioridade: NORMAL
+
+55. randomcomments
+    Funcao: Inserts random inline comments within SQL keywords (e.g. SELECT -> S/**/E/**/LECT)
+    Prioridade: LOW
+
+56. schemasplit
+    Funcao: Splits FROM schema identifiers (e.g. 'testdb.users') with whitespace (e.g. 'testdb 9.e.users')
+    Prioridade: HIGHEST
+
+57. scientific
+    Funcao: Abuses MySQL scientific notation
+    Prioridade: HIGHEST
+
+58. sign
+    Funcao: Replaces greater than operator ('>') with 'SIGN' counterpart (e.g. SIGN((A)-(B))=1)
+    Prioridade: HIGHEST
+
+59. sleep2getlock
+    Funcao: Replaces instances like 'SLEEP(5)' with (e.g.) "GET_LOCK('ETgP',5)"
+    Prioridade: HIGHEST
+
+60. sleep2hex
+    Funcao: Replaces (MySQL) instances like 'SLEEP(5)' with 'SLEEP(0x5)' counterpart
+    Prioridade: HIGHEST
+
+61. sp_password
+    Funcao: Appends (MsSQL) function 'sp_password' to the end of the payload for automatic obfuscation from DBMS logs
+    Prioridade: LOWEST
+
+62. space2comment
+    Funcao: Replaces space character (' ') with comments '/**/'
+    Prioridade: LOW
+
+63. space2dash
+    Funcao: Replaces space character (' ') with a dash comment ('--') followed by a random string and a new line (' ')
+    Prioridade: LOW
+
+64. space2hash
+    Funcao: Replaces (MySQL) instances of space character (' ') with a pound character ('#') followed by a random string and a new line (' ')
+    Prioridade: LOW
+
+65. space2morecomment
+    Funcao: Replaces (MySQL) instances of space character (' ') with comments '/**_**/'
+    Prioridade: LOW
+
+66. space2morehash
+    Funcao: Replaces (MySQL) instances of space character (' ') with a pound character ('#') followed by a random string and a new line (' ')
+    Prioridade: LOW
+
+67. space2mssqlblank
+    Funcao: Replaces (MsSQL) instances of space character (' ') with a random blank character from a valid set of alternate characters
+    Prioridade: LOW
+
+68. space2mssqlhash
+    Funcao: Replaces space character (' ') with a pound character ('#') followed by a new line (' ')
+    Prioridade: LOW
+
+69. space2mysqlblank
+    Funcao: Replaces (MySQL) instances of space character (' ') with a random blank character from a valid set of alternate characters
+    Prioridade: LOW
+
+70. space2mysqldash
+    Funcao: Replaces space character (' ') with a dash comment ('--') followed by a new line (' ')
+    Prioridade: LOW
+
+71. space2plus
+    Funcao: Replaces space character (' ') with plus ('+')
+    Prioridade: LOW
+
+72. space2randomblank
+    Funcao: Replaces space character (' ') with a random blank character from a valid set of alternate characters
+    Prioridade: LOW
+
+73. substring2leftright
+    Funcao: Replaces PostgreSQL SUBSTRING with LEFT and RIGHT
+    Prioridade: NORMAL
+
+74. symboliclogical
+    Funcao: Replaces AND and OR logical operators with their symbolic counterparts (&& and ||)
+    Prioridade: HIGHEST
+
+75. unionalltounion
+    Funcao: Replaces instances of UNION ALL SELECT with UNION SELECT counterpart
+    Prioridade: HIGHEST
+
+76. uniontable
+    Funcao: Replaces UNION SELECT * FROM <table> with the (MySQL) explicit table statement UNION TABLE <table>
+    Prioridade: HIGHEST
+
+77. unionvalues
+    Funcao: Replaces UNION SELECT <columns> with the standard SQL table value constructor UNION VALUES (<columns>)
+    Prioridade: HIGHEST
+
+78. unionvaluesrow
+    Funcao: Replaces UNION SELECT <columns> with the (MySQL) table value constructor UNION VALUES ROW(<columns>)
+    Prioridade: HIGHEST
+
+79. unmagicquotes
+    Funcao: Replaces quote character (') with a multi-byte combo %BF%27 together with generic comment at the end (to make it work)
+    Prioridade: NORMAL
+
+80. uppercase
+    Funcao: Replaces each keyword character with upper case value (e.g. select -> SELECT)
+    Prioridade: NORMAL
+
+81. varnish
+    Funcao: Appends a HTTP header 'X-originating-IP' to bypass Varnish Firewall
+    Prioridade: NORMAL
+
+82. versionedkeywords
+    Funcao: Encloses each non-function keyword with (MySQL) versioned comment
+    Prioridade: HIGHER
+
+83. versionedmorekeywords
+    Funcao: Encloses each keyword with (MySQL) versioned comment
+    Prioridade: HIGHER
+
+84. xforwardedfor
+    Funcao: Append a fake HTTP header 'X-Forwarded-For' (and alike)
+    Prioridade: NORMAL
+
+COMO ESTUDAR OS TAMPERS
+-----------------------
+- O docstring e o codigo de tamper/<nome>.py mostram a transformacao exata.
+- A compatibilidade depende do DBMS, do ponto de injecao, da tecnica e do filtro existente.
+- Um tamper pode causar falso negativo ou tornar um payload invalido.
+- Use --tamper com criterio e compare resultados sem e com a transformacao em escopo autorizado.
+- Alguns scripts sao especificos de MySQL, MSSQL, PostgreSQL, Oracle ou de uma familia de WAF.
