@@ -19,6 +19,15 @@ non-ASCII byte is unavoidable. Compatibility shims live in `lib/core/compat.py` 
 |-------|------|---------|
 | CLI | `sqlmap.py` -> `main()` | the scanner. Applies runtime patches, parses options, runs a scan. |
 | REST API | `sqlmapapi.py` | `-s` server / `-c` client wrappers around `lib/utils/api.py`. |
+| Desktop GUI | `sqlmap.py --gui` -> `lib/gui/` | Tkinter presentation layer; starts the existing sqlmap engine in a child process. |
+
+The desktop GUI is deliberately outside the engine state model. `lib/gui/models.py`
+normalizes parser metadata, typed values, profiles, and configuration files;
+`lib/gui/runner.py` owns the asynchronous process and event queue; and
+`lib/gui/app.py` coordinates the Tkinter tabs (Scan, Options, Results, and Output).
+`lib/utils/gui.py` remains a compatibility adapter for the parser helper names
+used by existing integrations. Tkinter is imported lazily, so headless CLI and
+API users do not acquire a GUI dependency.
 
 `main()` (sqlmap.py) does, in order: `dirtyPatches()` (monkey-patches stdlib for
 quirks/security - see below), `setPaths()`, `init()` (option parsing + environment

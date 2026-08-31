@@ -36,6 +36,19 @@ To get a list of all options and switches use:
 You can find a sample run [here](https://asciinema.org/a/46601).
 To get an overview of sqlmap capabilities, a list of supported features, and a description of all options and switches, along with examples, you are advised to consult the [user's manual](https://github.com/sqlmapproject/sqlmap/wiki/Usage).
 
+Graphical interface
+----
+
+This edition includes a Zenmap-inspired Tkinter front-end for users who prefer a visual workflow. Start it with:
+
+    python sqlmap.py --gui
+
+The interface keeps sqlmap as the scan engine and provides a target bar, URL/request-file/Burp-log/HAR/OpenAPI/target-list inputs, reusable Safe/Standard-style profiles, a command preview, grouped advanced options, an incremental output console, interactive input, and structured results from `--report-json`. It can also import and export sqlmap configuration files, save reports and console output, and persist non-secret custom profiles under the sqlmap home directory.
+
+Use the GUI only for targets and requests you are authorized to test. High-impact options are marked in the advanced editor and require an explicit confirmation before a run. Credentials and other secret fields are not written to custom profiles.
+
+Tkinter must be available in the Python installation. On Debian or Ubuntu, this is commonly provided by the `python3-tk` package; Windows Python installers commonly include it. A headless environment will continue to support the command-line interface, but cannot open the GUI.
+
 Links
 ----
 
